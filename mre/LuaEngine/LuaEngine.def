@@ -1,0 +1,8 @@
+; LuaEngine.def : Declares the module parameters for the DLL.
+; MRE loader dùng export `vm_entry` làm điểm vào (do gccmain.c cung cấp).
+
+LIBRARY      "LuaEngine"
+DESCRIPTION  'LuaEngine Windows Dynamic Link Library'
+
+EXPORTS
+    vm_entry @1

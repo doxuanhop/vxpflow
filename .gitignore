@@ -1,0 +1,22 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# MRE toolchain bundle (nhị phân lớn — phát hành qua Releases, không nhét git)
+mre-tool/
+
+# Dữ liệu người dùng & workspace trong repo
+workspace/
+
+# Tệp ký (không dùng — build .vxp không cần ký)
+*.pem
+*.key

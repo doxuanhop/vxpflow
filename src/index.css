@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+  
+  .geometric-dot-grid {
+    background-image: radial-gradient(#C7BFD9 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+}
+
+body {
+  font-family: 'Roboto', 'Plus Jakarta Sans', system-ui, sans-serif;
+  background-color: #EFEAF6;
+  color: #221E2B;
+  user-select: none;
+}
+
+/* Light Material 3 scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F4EFFA;
+}
+::-webkit-scrollbar-thumb {
+  background: #CDC5DE;
+  border-radius: 4px;
+  border: 2px solid #F4EFFA;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6750A4;
+}

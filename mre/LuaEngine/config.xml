@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--This file represents user settings about package information that will be packaged into vxp(MRE2.0)-->
+<packageinfo>
+  <userinfo>
+    <developer>VXPEngine Studio</developer>
+    <appversion>0.1.0</appversion>
+    <APPID>-1</APPID>
+    <iconName>
+    </iconName>
+  </userinfo>
+  <APIAuth>
+    <!-- LuaEngine chỉ dùng: File (đọc script.lua), đồ hoạ + timer + phím (nằm trong lõi MRE) -->
+    <category>File</category>
+  </APIAuth>
+</packageinfo>
