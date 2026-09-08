@@ -83,7 +83,6 @@ Các bước trong `BuildApp.bat` (khớp đúng nguyên lý):
    persysfile.a -lm`
 5. `PackRes.exe` (resource rỗng) + `PackApp.exe -a LuaEngine.axf -o
    LuaEngine.vxp -tai 0` (unsigned → chạy trên MREmu; muốn chạy máy thật,
-   ký bằng `cert100-key.pem` — xem "Chạy trên máy thật")
 
 > Lưu ý MREmu quirk: `vm_file_read` của MREmu trả *số byte đã đọc* thay vì 0
 > như máy thật — `LuaEngine.c` chấp nhận cả hai.
@@ -115,7 +114,7 @@ gói lại với chứng chỉ:
 
 ```bat
 set TinyMRESDK=D:\MRE\XimikBoda\TinyMRESDK-main
-%TinyMRESDK%\bin\PackApp.exe -a mre\LuaEngine\LuaEngine.axf -r mre\LuaEngine\arm\LuaEngine.res -o LuaEngine_signed.vxp -tr 1000 -tn LuaEngine -tdn "VXPEngine Studio" -tb 0 -tapi File -ty vxp -tc GCC -tai 67502 -tci 100 -ti 91234567890 -crt D:\MRE\lua-engine\mre-core\signing\cert100-key.pem
+%TinyMRESDK%\bin\PackApp.exe -a mre\LuaEngine\LuaEngine.axf -r mre\LuaEngine\arm\LuaEngine.res -o LuaEngine_signed.vxp -tr 1000 -tn LuaEngine -tdn "VXPEngine Studio" -tb 0 -tapi File -ty vxp -tc GCC -tai 67502 -tci 100 -ti 91234567890 -crt (không cần — build .vxp không ký)
 ```
 
 ## Lua API (có sẵn khi chạy script)
@@ -145,7 +144,7 @@ Ví dụ demo đầy đủ trong `mre/LuaEngine/script.lua`.
 - TinyMRESDK: `D:\MRE\XimikBoda\TinyMRESDK-main\bin` (PackApp.exe, PackRes.exe)
 - ARM GCC: `Arm GNU Toolchain arm-none-eabi 14.2 rel1`
 - MREmu: `D:\MRE\lua-engine\mre-core\emulator\MREmu.exe`
-- Chứng chỉ: `D:\MRE\lua-engine\mre-core\signing\cert100-key.pem`
+- Chứng chỉ: không dùng — build .vxp không cần ký ứng dụng
 
 ## Kiến trúc runtime (LuaEngine.c) — đã kiểm chứng end-to-end trên MREmu
 
