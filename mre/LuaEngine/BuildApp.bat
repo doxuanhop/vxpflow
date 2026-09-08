@@ -75,7 +75,7 @@ if exist "..\..\public\mre" copy /Y "%OUT%\LuaEngine.vxp" "..\..\public\mre\LuaE
 
 echo.
 echo [LuaEngine] DONE. File: %OUT%\LuaEngine.vxp (unsigned, appid 0 - chay duoc tren MREmu)
-echo           De chay tren may that: khao README.md (ky bang cert100-key.pem).
+echo           De chay tren may that: chuyen .vxp vao the nho (khong can ky ung dung).
 exit /b 0
 
 :err
