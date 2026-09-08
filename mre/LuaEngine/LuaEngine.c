@@ -92,14 +92,42 @@ static VMUINT ucs2_len(const VMUINT16 *s)
     return n;
 }
 
+/* Giải mã UTF-8 -> UCS-2: script Lua sinh từ VXPFlow dùng chuỗi UTF-8
+   (tiếng Việt "Bấm vào đây!" v.v.). vm_ascii_to_ucs2 coi mỗi byte là 1 ký
+   tự -> hiển thị ký tự rác. Tự giải mã đúng chuẩn UTF-8 (1-3 byte). */
+static VMUINT utf8_to_ucs2(const char *src, VMUINT16 *dst, VMUINT max_chars)
+{
+    VMUINT n = 0;
+    const unsigned char *p = (const unsigned char *)src;
+    while (*p && n < max_chars - 1) {
+        unsigned char c = *p;
+        if (c < 0x80) {
+            dst[n++] = (VMUINT16)c;
+            p += 1;
+        } else if ((c & 0xE0) == 0xC0 && (p[1] & 0xC0) == 0x80) {
+            dst[n++] = (VMUINT16)(((VMUINT16)(c & 0x1F) << 6) | (p[1] & 0x3F));
+            p += 2;
+        } else if ((c & 0xF0) == 0xE0 && (p[1] & 0xC0) == 0x80 && (p[2] & 0xC0) == 0x80) {
+            dst[n++] = (VMUINT16)(((VMUINT16)(c & 0x0F) << 12)
+                                  | ((VMUINT16)(p[1] & 0x3F) << 6)
+                                  | (p[2] & 0x3F));
+            p += 3;
+        } else {
+            /* byte không hợp lệ: bỏ qua để không in rác */
+            p += 1;
+        }
+    }
+    dst[n] = 0;
+    return n;
+}
+
 static void draw_text_xy(VMINT x, VMINT y, const char *text, VMINT size, VMUINT color)
 {
     VMUINT16 wbuf[128];
     VMUINT len;
 
     if (g_layer < 0) return;
-    vm_ascii_to_ucs2(wbuf, 128, (VMSTR)text);
-    len = ucs2_len(wbuf);
+    len = utf8_to_ucs2(text, wbuf, 128);
     if (len > 127) len = 127;
     if (size > 0) vm_font_set_font_size(size);
     set_color_565(color);
