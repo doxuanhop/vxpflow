@@ -257,6 +257,9 @@ async fn build_project_vxp(
         // build_dir có thể là đường dẫn TƯỜT ĐỐI (workspace) hoặc TƯƠNG ĐỐI (id project
         // không có storagePath — vd sample). Chuẩn hoá sang tuyệt đối: <app_root>/workspace/<id>/build
         // để luac.exe (chạy với current_dir = build_path) luôn mở được script.lua.
+        // Dự án cũ có storagePath trỏ repo "vxpengine" (repo đã đổi tên) — chuyển sang repo hiện tại
+        let build_dir = build_dir.replace(r"desktop-webapps\vxpengine", r"desktop-webapps\vxpflow")
+            .replace("desktop-webapps/vxpengine", "desktop-webapps/vxpflow");
         let mut build_path = PathBuf::from(&build_dir);
         if !build_path.is_absolute() {
             let root = workspace_root()

@@ -20,7 +20,7 @@ export function isDesktop(): boolean {
  */
 let _wsRootCache: string | null = null;
 export function workspaceRoot(): string {
-  return _wsRootCache ?? 'D:/desktop-webapps/vxpengine/workspace';
+  return _wsRootCache ?? 'D:/desktop-webapps/vxpflow/workspace';
 }
 
 export async function initWorkspaceRoot(): Promise<void> {

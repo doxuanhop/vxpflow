@@ -89,7 +89,12 @@ export function projectSlugOf(project: Pick<VXPProject, 'packageName'>): string 
 /** Thư mục gốc đầy đủ của project trên đĩa — null khi không có storagePath */
 export function projectDirOf(project: VXPProject): string | null {
   if (!project.storagePath) return null;
-  return `${project.storagePath.replace(/[\\/]+$/, '')}/${projectSlugOf(project)}`;
+  let dir = `${project.storagePath.replace(/[\/]+$/, '')}/${projectSlugOf(project)}`;
+  // Dự án cũ storagePath trỏ repo "vxpengine" (repo đã đổi tên thành "vxpflow") → dùng workspace repo mới
+  if (dir.indexOf('desktop-webapps/vxpengine') >= 0) {
+    dir = dir.replace('desktop-webapps/vxpengine', 'desktop-webapps/vxpflow');
+  }
+  return dir;
 }
 
 /** Đường dẫn thư mục xuất bản phẩm (build) */
