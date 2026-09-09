@@ -9,7 +9,7 @@ import {
   ArrowDown, ArrowLeft, ArrowRight, CornerDownLeft, AlertCircle,
   Check, Phone, PhoneOff, Compass, Key, PanelLeftClose, PanelLeftOpen,
   AlignLeft, AlignCenter, AlignRight, ArrowUpToLine, ArrowDownToLine,
-  AlignVerticalJustifyCenter, Palette, Rocket, Keyboard, Puzzle
+  AlignVerticalJustifyCenter, Palette, Rocket, Keyboard, Puzzle, WandSparkles
 } from 'lucide-react';
 import { useI18n } from '../../i18n';
 import { useSysDialogs } from '../SystemDialogs/SystemDialogs';
@@ -444,9 +444,10 @@ export const DesignerWorkspace: React.FC<DesignerWorkspaceProps> = ({
   };
 
   // Nudge selected component position with arrow keys
-  const handleNudge = (dx: number, dy: number) => {
+  const handleNudge = (dx: number, dy: number, fast = false) => {
     if (!selectedComponentId) return;
-    const step = snapToGrid ? gridSize : 1;
+    // Shift+Arrow = bước nhanh 8px (grid lớn); thường = 1px tinh chỉnh nếu đang snap
+    const step = fast ? 8 : (snapToGrid ? gridSize : 1);
     const deltaX = dx * step;
     const deltaY = dy * step;
 
@@ -521,16 +522,16 @@ export const DesignerWorkspace: React.FC<DesignerWorkspaceProps> = ({
       if (selectedComponentId) {
         if (e.key === 'ArrowUp') {
           e.preventDefault();
-          handleNudge(0, -1);
+          handleNudge(0, -1, e.shiftKey);
         } else if (e.key === 'ArrowDown') {
           e.preventDefault();
-          handleNudge(0, 1);
+          handleNudge(0, 1, e.shiftKey);
         } else if (e.key === 'ArrowLeft') {
           e.preventDefault();
-          handleNudge(-1, 0);
+          handleNudge(-1, 0, e.shiftKey);
         } else if (e.key === 'ArrowRight') {
           e.preventDefault();
-          handleNudge(1, 0);
+          handleNudge(1, 0, e.shiftKey);
         }
       }
     };
@@ -558,11 +559,13 @@ export const DesignerWorkspace: React.FC<DesignerWorkspaceProps> = ({
       // Phòng ngừa: không cho thành phần làm cha của chính nó (khi thả lên
       // chính hộc chứa của nó) — tránh vòng lặp làm mất thành phần khỏi màn hình
       const finalParentId = targetParentId === currentComp.id ? currentComp.parentId : targetParentId;
+      // Ctrl+thả = không snap — đặt chính xác vị trí chuột (tinh chỉnh tự do)
+      const freePlace = pd.drag?.ctrlKey === true;
       const updatedComp = {
         ...currentComp,
         parentId: finalParentId || undefined,
-        x: snap(dropX),
-        y: snap(dropY)
+        x: freePlace ? Math.round(dropX) : snap(dropX),
+        y: freePlace ? Math.round(dropY) : snap(dropY)
       };
 
       const remaining = components.filter(c => c.id !== compId);
@@ -758,6 +761,48 @@ export const DesignerWorkspace: React.FC<DesignerWorkspaceProps> = ({
       onDeleteScreen(activeScreen);
     }
     setIsScreenMenuOpen(false);
+  };
+
+
+  /* ---- TIDY: tự động xếp layout gọn (kiểu m3e-canvas) — Lưu lại bản trước để undo ---- */
+  const [lastTidy, setLastTidy] = useState<UIComponent[] | null>(null);
+  const handleTidyLayout = () => {
+    if (!components.length) return;
+    if (lastTidy) {
+      // bấm lần 2 → hoàn tác
+      onUpdateComponents(lastTidy);
+      setLastTidy(null);
+      showToast(t('dw.tidyRestored'));
+      return;
+    }
+    setLastTidy(components);
+    // Xếp: sắp theo y rồi x; mỗi dòng ghép sát mép trái + cách nhau 1 nửa grid; nhóm hàng có chung y±8
+    const vis = components.filter(c => !isNonVisible(c.type) && (c.screen ?? 'Screen1') === activeScreen);
+    const rest = components.filter(c => !vis.includes(c));
+    const sorted = [...vis].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const rows: UIComponent[][] = [];
+    for (const c of sorted) {
+      const row = rows.find(r => Math.abs((r[0]?.y ?? 0) - c.y) <= 12);
+      if (row) row.push(c); else rows.push([c]);
+    }
+    const MARGIN = 4, GAP = 4;
+    const out: UIComponent[] = [];
+    let cursorY = MARGIN;
+    for (const row of rows) {
+      let cursorX = MARGIN;
+      let rowH = 0;
+      for (const c of row) {
+        const w = typeof c.width === 'number' ? c.width : 100;
+        const h = typeof c.height === 'number' ? c.height : 30;
+        const maxX = Math.max(0, 240 - w);
+        out.push({ ...c, x: Math.min(cursorX, maxX), y: cursorY });
+        cursorX += w + GAP;
+        rowH = Math.max(rowH, h);
+      }
+      cursorY += rowH + GAP;
+    }
+    onUpdateComponents([...rest, ...out]);
+    showToast(t('dw.tidyDone'));
   };
 
   // Filter palette items based on search
@@ -1206,6 +1251,19 @@ export const DesignerWorkspace: React.FC<DesignerWorkspaceProps> = ({
             >
               <Grid className="w-3 h-3" />
               <span className="hidden md:inline">{t('dw.snap')} ({gridSize}px)</span>
+            </button>
+
+            {/* Tidy — tự xếp layout gọn, bấm lần nữa để hoàn tác (kiểu m3e-canvas) */}
+            <button
+              onClick={handleTidyLayout}
+              disabled={!components.length}
+              className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                lastTidy ? 'bg-[#0EA5E9] text-white' : 'text-[#494256] hover:text-[#221E2B] hover:bg-[#E4DEF1]'
+              }`}
+              title={t('dw.tidyHint')}
+            >
+              <WandSparkles className="w-3 h-3" />
+              <span className="hidden md:inline">{lastTidy ? t('dw.tidyUndo') : t('dw.tidy')}</span>
             </button>
 
             {/* Grid size options */}

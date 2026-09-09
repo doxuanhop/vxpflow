@@ -33,6 +33,8 @@ export interface PointerDragState<T> {
   color: string;
   x: number;
   y: number;
+  /** Ctrl đang giữ trong lúc kéo (bỏ snap ở drop handler nếu muốn) */
+  ctrlKey: boolean;
 }
 
 const DRAG_THRESHOLD = 6;
@@ -46,6 +48,7 @@ interface DragSession<T> {
   label: string;
   color: string;
   moved: boolean;
+  ctrlKey: boolean;
 }
 
 export function usePointerDrag<T>(opts: PointerDragOptions<T>) {
@@ -86,7 +89,7 @@ export function usePointerDrag<T>(opts: PointerDragOptions<T>) {
       document.body.style.userSelect = 'none';
       // KHÔNG dùng setPointerCapture — nó phá elementFromPoint trong một số browser
     }
-    setDrag({ payload: s.payload, label: s.label, color: s.color, x: e.clientX, y: e.clientY });
+    setDrag({ payload: s.payload, label: s.label, color: s.color, x: e.clientX, y: e.clientY, ctrlKey: e.ctrlKey });
     // Hit-test: tạm ẩn ghost để elementFromPoint tìm đúng zone bên dưới
     const ghostEl = document.getElementById('block-ghost');
     if (ghostEl) ghostEl.style.display = 'none';
@@ -144,7 +147,8 @@ export function usePointerDrag<T>(opts: PointerDragOptions<T>) {
       payload,
       label,
       color,
-      moved: false
+      moved: false,
+      ctrlKey: e.ctrlKey
     };
     // Gắn listener TRỰC TIẾP — không chờ useEffect (React flush có thể trễ)
     window.addEventListener('pointermove', handleMove);
