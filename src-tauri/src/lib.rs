@@ -267,9 +267,15 @@ async fn build_project_vxp(
             build_path = root.join("workspace").join(&build_dir);
         }
         // canonical hoá (resolve .., /) — luac không hiểu path có ".."
-        let build_path = build_path
+        // rồi BỎ prefix \?\ Windows extended-path cho đường dẫn hiển thị thân thiện
+        let mut build_path = build_path
             .canonicalize()
             .unwrap_or(build_path);
+        if let Some(s) = build_path.to_str() {
+            if let Some(stripped) = s.strip_prefix(r"\\?\") {
+                build_path = PathBuf::from(stripped);
+            }
+        }
         fs::create_dir_all(&build_path).map_err(|e| e.to_string())?;
 
         let root = app_root().ok_or("Không tìm thấy thư mục gốc của ứng dụng")?;
