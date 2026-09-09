@@ -49,6 +49,7 @@
 #include "ResID.h"
 
 #include <string.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -357,6 +358,27 @@ static int lm_exit_app(lua_State *L)
     return 0;
 }
 
+/* set_timer_state(enabled_bool) — bật/tắt timer MRE duy nhất */
+static int lm_set_timer_state(lua_State *L)
+{
+    int enable = lua_toboolean(L, 1);
+    if (enable)
+    {
+        if (g_timer < 0 && g_lua_timer_count > 0)
+        {
+            g_timer = vm_create_timer(g_interval, on_timer);
+            _vm_log_info("[%s] timer resumed (%dms)", LOG_TAG, (int)g_interval);
+        }
+    }
+    else if (g_timer >= 0)
+    {
+        vm_delete_timer(g_timer);
+        g_timer = -1;
+        _vm_log_info("[%s] timer paused", LOG_TAG);
+    }
+    return 0;
+}
+
 /* Chạy toàn bộ callback Lua đã đăng ký qua MRE.create_timer */
 static void run_lua_timers(void)
 {
@@ -403,15 +425,104 @@ static void call_lua_2args(lua_State *L, const char *fname, VMINT key_code, cons
     }
 }
 
+
+/* ---- Các binding bổ sung cho luaGenerator (vẽ + tiện ích) ---- */
+
+static int lm_noop0(lua_State *L) { (void)L; return 0; }
+static int lm_noop1(lua_State *L) { (void)L; return 0; }
+
+static int lm_keypad_init(lua_State *L)
+{
+    const char *profile = luaL_optstring(L, 1, "s30plus");
+    _vm_log_info("[%s] KeyInit: %s", LOG_TAG, profile ? profile : "?");
+    return 0;
+}
+
+static int lm_vibrate(lua_State *L)
+{
+    VMINT ms = (VMINT)luaL_optnumber(L, 1, 50);
+    _vm_log_info("[%s] vibrate(%d)", LOG_TAG, (int)ms);
+    return 0;
+}
+
+static int lm_draw_line(lua_State *L)
+{
+    VMINT x1 = (VMINT)luaL_checknumber(L, 1);
+    VMINT y1 = (VMINT)luaL_checknumber(L, 2);
+    VMINT x2 = (VMINT)luaL_checknumber(L, 3);
+    VMINT y2 = (VMINT)luaL_checknumber(L, 4);
+    VMUINT color = (VMUINT)luaL_optnumber(L, 5, 0xFFFFFF);
+    VMINT dx, dy, sx, sy, err, x, y;
+    if (g_layer < 0) return 0;
+    set_color_565(color);
+    dx = x2 > x1 ? x2 - x1 : x1 - x2;
+    dy = y2 > y1 ? y2 - y1 : y1 - y2;
+    sx = x1 < x2 ? 1 : -1;
+    sy = y1 < y2 ? 1 : -1;
+    err = dx - dy;
+    x = x1; y = y1;
+    for (;;)
+    {
+        VMINT e2;
+        vm_graphic_fill_rect_ex(g_layer, x, y, 1, 1);
+        if (x == x2 && y == y2) break;
+        e2 = err * 2;
+        if (e2 > -dy) { err -= dy; x += sx; }
+        if (e2 < dx)  { err += dx; y += sy; }
+    }
+    return 0;
+}
+
+static int lm_draw_pixel(lua_State *L)
+{
+    VMINT x = (VMINT)luaL_checknumber(L, 1);
+    VMINT y = (VMINT)luaL_checknumber(L, 2);
+    VMUINT color = (VMUINT)luaL_optnumber(L, 3, 0xFFFFFF);
+    if (g_layer < 0) return 0;
+    set_color_565(color);
+    vm_graphic_fill_rect_ex(g_layer, x, y, 1, 1);
+    return 0;
+}
+
+static int lm_draw_circle(lua_State *L)
+{
+    VMINT cx = (VMINT)luaL_checknumber(L, 1);
+    VMINT cy = (VMINT)luaL_checknumber(L, 2);
+    VMINT r  = (VMINT)luaL_checknumber(L, 3);
+    VMUINT color = (VMUINT)luaL_optnumber(L, 4, 0xFFFFFF);
+    VMINT y;
+    if (g_layer < 0 || r <= 0) return 0;
+    set_color_565(color);
+    for (y = -r; y <= r; y++)
+    {
+        VMINT w = (VMINT)sqrt((double)(r * r - y * y));
+        if (w > 0)
+            vm_graphic_fill_rect_ex(g_layer, cx - w, cy + y, w * 2, 1);
+    }
+    return 0;
+}
+
+
 static void register_mre_table(lua_State *L)
 {
     static const luaL_Reg mre_fns[] = {
         {"draw_text",  lm_draw_text},
         {"draw_rect",  lm_draw_rect},
+        {"draw_line",  lm_draw_line},
+        {"draw_pixel", lm_draw_pixel},
+        {"draw_circle", lm_draw_circle},
         {"log",        lm_log},
         {"app_init",   lm_app_init},
         {"create_timer", lm_create_timer},
         {"exit_app",   lm_exit_app},
+        {"register_key_listener", lm_noop0},
+        {"keypad_init", lm_keypad_init},
+        {"set_timer_state", lm_set_timer_state},
+        {"sound_play", lm_noop1},
+        {"vibrate", lm_vibrate},
+        {"sprite_create", lm_noop0},
+        {"sprite_move", lm_noop0},
+        {"sprite_rotate", lm_noop1},
         {NULL, NULL}
     };
     int i;
